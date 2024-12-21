@@ -171,9 +171,6 @@ jobs:
         echo "UPLOAD_ALLKMOD=${UPLOAD_ALLKMOD}" >> $GITHUB_ENV
         echo "UPLOAD_SYSUPGRADE=${UPLOAD_SYSUPGRADE}" >> $GITHUB_ENV
         echo "USE_Cache=${USE_Cache}" >> $GITHUB_ENV
-        if [ ${{github.event.inputs.TEST-KERNEL}} = true ]; then
-        echo "Kernel_Test=_Kernel_Test_Ver" >> $GITHUB_ENV
-        fi
         chmod +x $DIY_SH $DIY_SH_AFB $DIY_SH_RFC gen-sha256sum.sh add-test-packages.sh
 
     - name: 导入机器及安装包config
@@ -207,10 +204,6 @@ jobs:
         df -hT $PWD
         git clone $REPO_URL -b $REPO_BRANCH openwrt --single-branch
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
-        [ -d openwrt-2203/target ] && mv -f openwrt-2203/target openwrt/target
-        [ -d openwrt-2203/package ] && mv -f openwrt-2203/package openwrt/package
-        [ -d openwrt-2203/patch-istoreos-${{matrix.target}} ] && mv -f openwrt-2203/patch-istoreos-${{matrix.target}} openwrt/patch-istoreos
-        cd openwrt
         sed -i '$a src-git lunatic7 https://github.com/lunatickochiya/actionbased-openwrt-packages.git' feeds.conf.default
         sed -i 's|https://github.com/jjm2473/packages.git|https://github.com/lunatickochiya/istoreos-packages-2203.git|' feeds.conf.default
         $GITHUB_WORKSPACE/$DIY_SH patch-openwrt
@@ -234,10 +227,16 @@ jobs:
       run: |
         [ -d package ] && mv -f package/* openwrt/package
         mkdir openwrt/feeds-bump
+        mkdir openwrt/patch-istoreos
         [ -d feeds-packages ] && mv -f feeds-packages/openwrt-23.05/feeds/* openwrt/feeds-bump
+        [ -d openwrt-2203/target ] && mv -f openwrt-2203/target openwrt/target
+        [ -d openwrt-2203/package ] && mv -f openwrt-2203/package openwrt/package
+        [ -d openwrt-2203/patch-istoreos-${{matrix.target}} ] && mv -f openwrt-2203/patch-istoreos-${{matrix.target}}/* openwrt/patch-istoreos
         if [ ${{github.event.inputs.KERNEL66}} = true ]; then
         rm -rf openwrt-2203/mypatch-2203-${{matrix.target}}/0004-fix.patch
         fi
+        cd openwrt
+        $GITHUB_WORKSPACE/$DIY_SH patch-openwrt
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: 设置 IP 地址
